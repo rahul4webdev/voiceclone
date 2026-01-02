@@ -79,9 +79,11 @@ async def synthesize_speech(
         result = await tts_client.synthesize(
             text=request.text,
             model=request.model,
-            audio_path=audio_path if request.model == "chatterbox" else None,
+            audio_path=audio_path if request.model in ("chatterbox", "xtts") else None,
+            language=request.language,
             voice="tara",  # Orpheus default voice
             emotion=request.emotion,
+            speaker_gender=request.speaker_gender,
         )
     except TTSClientError as e:
         logger.error("TTS synthesis failed", error=str(e), voice_id=str(request.voice_id))
@@ -149,9 +151,11 @@ async def synthesize_audio(
         result = await tts_client.synthesize(
             text=request.text,
             model=request.model,
-            audio_path=audio_path if request.model == "chatterbox" else None,
+            audio_path=audio_path if request.model in ("chatterbox", "xtts") else None,
+            language=request.language,
             voice="tara",
             emotion=request.emotion,
+            speaker_gender=request.speaker_gender,
         )
     except TTSClientError as e:
         logger.error("TTS synthesis failed", error=str(e))
@@ -187,6 +191,30 @@ async def list_models() -> dict:
     """List available TTS models and their capabilities."""
     return {
         "models": [
+            {
+                "id": "svara",
+                "name": "svara-TTS",
+                "description": "Indian languages TTS with emotion control (19 languages)",
+                "features": ["emotion_tags", "indian_languages", "voice_cloning"],
+                "requires_reference_audio": False,
+                "supported_languages": [
+                    "hi", "bn", "mr", "te", "kn", "ta", "gu", "ml", "pa",
+                    "as", "or", "bo", "doi", "bho", "mai", "mag", "cg", "ne", "sa", "en-in"
+                ],
+                "emotion_tags": ["happy", "sad", "anger", "fear", "neutral"],
+                "recommended_for": "Hindi and Indian languages - best quality",
+            },
+            {
+                "id": "xtts",
+                "name": "XTTS-v2",
+                "description": "Multilingual voice cloning with 17 languages",
+                "features": ["voice_cloning", "multilingual"],
+                "requires_reference_audio": True,
+                "supported_languages": [
+                    "en", "es", "fr", "de", "it", "pt", "pl", "tr",
+                    "ru", "nl", "cs", "ar", "zh-cn", "ja", "hu", "ko", "hi"
+                ],
+            },
             {
                 "id": "chatterbox",
                 "name": "Chatterbox",

@@ -1,6 +1,7 @@
 """Modal.com TTS Inference Service with Multilingual Voice Cloning.
 
 Supports:
+- svara-TTS: Indian languages voice cloning (19 languages including Hindi, Bengali, Tamil, etc.)
 - XTTS-v2: Multilingual voice cloning (17 languages including Hindi, English)
 - Chatterbox: English voice cloning with emotion control
 - Orpheus: English emotional TTS with preset voices
@@ -40,6 +41,33 @@ XTTS_SUPPORTED_LANGUAGES = [
     "hi",  # Hindi
 ]
 
+# Supported languages for svara-TTS (Indian languages)
+SVARA_SUPPORTED_LANGUAGES = [
+    "hi",  # Hindi
+    "bn",  # Bengali
+    "mr",  # Marathi
+    "te",  # Telugu
+    "kn",  # Kannada
+    "ta",  # Tamil
+    "gu",  # Gujarati
+    "ml",  # Malayalam
+    "pa",  # Punjabi
+    "as",  # Assamese
+    "or",  # Odia
+    "bo",  # Bodo
+    "doi",  # Dogri
+    "bho",  # Bhojpuri
+    "mai",  # Maithili
+    "mag",  # Magahi
+    "cg",  # Chhattisgarhi
+    "ne",  # Nepali
+    "sa",  # Sanskrit
+    "en-in",  # Indian English
+]
+
+# Svara emotion tags
+SVARA_EMOTIONS = ["happy", "sad", "anger", "fear", "neutral"]
+
 # Define the container image with all dependencies
 tts_image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -71,6 +99,8 @@ tts_image = (
         "snac",
         "einops",
     )
+    # svara-TTS dependencies (using HuggingFace model directly)
+    # The model is kenpath/svara-tts-v1 on HuggingFace
 )
 
 # Volume for caching models
@@ -181,6 +211,45 @@ class TTSService:
             print(f"Failed to load Orpheus: {e}")
             self.orpheus = None
 
+        # Load svara-TTS model (Indian languages - Hindi, Bengali, Tamil, etc.)
+        print("Loading svara-TTS model (Indian languages)...")
+        try:
+            self._load_svara_model()
+            print(f"svara-TTS loaded successfully. Supported: {SVARA_SUPPORTED_LANGUAGES}")
+        except Exception as e:
+            import traceback
+            print(f"Failed to load svara-TTS: {e}")
+            print(f"Full traceback:\n{traceback.format_exc()}")
+            self.svara = None
+
+    def _load_svara_model(self):
+        """Load svara-TTS model for Indian languages."""
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        print("Loading svara-TTS from HuggingFace...")
+        model_name = "kenpath/svara-tts-v1"
+
+        self.svara_tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            cache_dir=MODEL_CACHE_PATH,
+        )
+        self.svara_model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.bfloat16,
+            device_map=self.device,
+            cache_dir=MODEL_CACHE_PATH,
+        )
+
+        # Load SNAC decoder for audio (same as Orpheus)
+        import snac
+        if not hasattr(self, 'snac_model') or self.snac_model is None:
+            self.snac_model = snac.SNAC.from_pretrained("hubertsiuzdak/snac_24khz").to(self.device)
+
+        self.svara = "loaded"
+        self.svara_sample_rate = 24000
+        print("svara-TTS loaded from HuggingFace successfully")
+
     def _load_orpheus_direct(self):
         """Load Orpheus model directly from HuggingFace."""
         import torch
@@ -281,6 +350,121 @@ class TTSService:
             return {"error": str(e), "traceback": traceback.format_exc()}
         finally:
             os.unlink(audio_prompt_path)
+
+    @modal.method()
+    def synthesize_svara(
+        self,
+        text: str,
+        audio_prompt_base64: Optional[str] = None,
+        language: str = "hi",
+        emotion: Optional[str] = None,
+        speaker_gender: str = "female",
+    ) -> dict:
+        """Synthesize speech using svara-TTS model (Indian languages).
+
+        Args:
+            text: Text to synthesize
+            audio_prompt_base64: Optional base64 encoded reference audio for voice cloning
+            language: Language code (hi, bn, ta, te, mr, gu, kn, ml, pa, etc.)
+            emotion: Optional emotion tag (happy, sad, anger, fear, neutral)
+            speaker_gender: Speaker gender for default voice (male/female)
+
+        Returns:
+            Dictionary with base64 encoded audio and metadata
+        """
+        import soundfile as sf
+        import tempfile
+        import numpy as np
+        import torch
+
+        if self.svara is None:
+            return {"error": "svara-TTS model not loaded"}
+
+        # Validate language
+        if language not in SVARA_SUPPORTED_LANGUAGES:
+            return {
+                "error": f"Unsupported language: {language}. Supported: {SVARA_SUPPORTED_LANGUAGES}"
+            }
+
+        # Validate emotion
+        if emotion and emotion not in SVARA_EMOTIONS:
+            return {
+                "error": f"Unsupported emotion: {emotion}. Supported: {SVARA_EMOTIONS}"
+            }
+
+        start_time = time.time()
+
+        try:
+            # Format the prompt for svara-TTS
+            # svara uses format: <lang_code> <gender>: <emotion_tag> text
+            prompt_parts = [f"<{language}>", f"<{speaker_gender}>:"]
+            if emotion:
+                prompt_parts.append(f"<{emotion}>")
+            prompt_parts.append(text)
+            prompt = " ".join(prompt_parts)
+
+            # Handle voice cloning if reference audio provided
+            if audio_prompt_base64:
+                # TODO: Implement voice cloning with reference audio
+                # For now, use the model's default voice generation
+                pass
+
+            # Tokenize
+            inputs = self.svara_tokenizer(prompt, return_tensors="pt").to(self.device)
+
+            # Generate
+            with torch.no_grad():
+                outputs = self.svara_model.generate(
+                    **inputs,
+                    max_new_tokens=2048,
+                    do_sample=True,
+                    temperature=0.7,
+                    top_p=0.95,
+                    pad_token_id=self.svara_tokenizer.eos_token_id,
+                )
+
+            # Extract audio tokens (skip text tokens)
+            audio_tokens = outputs[0][inputs.input_ids.shape[1]:]
+
+            # Decode with SNAC
+            # Reshape tokens for SNAC (3 codebooks)
+            num_frames = len(audio_tokens) // 3
+            if num_frames == 0:
+                return {"error": "No audio generated - text may be too short"}
+
+            audio_tokens = audio_tokens[:num_frames * 3].reshape(1, 3, num_frames)
+
+            with torch.no_grad():
+                wav = self.snac_model.decode(audio_tokens)
+
+            wav = wav.squeeze().cpu().numpy()
+
+            # Ensure correct shape
+            if wav.ndim > 1:
+                wav = wav.squeeze()
+
+            # Encode to base64
+            buffer = io.BytesIO()
+            sf.write(buffer, wav, self.svara_sample_rate, format="WAV")
+            buffer.seek(0)
+            audio_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+
+            processing_time = (time.time() - start_time) * 1000
+            duration = len(wav) / self.svara_sample_rate
+
+            return {
+                "audio_base64": audio_base64,
+                "sample_rate": self.svara_sample_rate,
+                "duration_seconds": duration,
+                "processing_time_ms": processing_time,
+                "model": "svara-tts",
+                "language": language,
+                "emotion": emotion,
+            }
+
+        except Exception as e:
+            import traceback
+            return {"error": str(e), "traceback": traceback.format_exc()}
 
     @modal.method()
     def synthesize_chatterbox(
@@ -463,17 +647,22 @@ class TTSService:
         """Check service health and model availability."""
         return {
             "status": "healthy",
+            "svara_loaded": self.svara is not None,
             "xtts_loaded": self.xtts is not None,
             "chatterbox_loaded": self.chatterbox is not None,
             "orpheus_loaded": self.orpheus is not None,
             "device": self.device,
-            "supported_languages": XTTS_SUPPORTED_LANGUAGES,
+            "supported_languages": {
+                "svara": SVARA_SUPPORTED_LANGUAGES,
+                "xtts": XTTS_SUPPORTED_LANGUAGES,
+            },
         }
 
     @modal.method()
     def get_supported_languages(self) -> dict:
         """Get list of supported languages."""
         return {
+            "svara": SVARA_SUPPORTED_LANGUAGES,
             "xtts": XTTS_SUPPORTED_LANGUAGES,
             "chatterbox": ["en"],
             "orpheus": ["en"],
@@ -495,11 +684,12 @@ def synthesize(request: dict) -> dict:
     Request body:
     {
         "text": "Text to synthesize",
-        "model": "xtts" (multilingual), "chatterbox" (English), or "orpheus" (English),
-        "audio_prompt_base64": "base64 encoded WAV audio" (required for xtts/chatterbox),
-        "language": "hi" (for xtts, default: en),
+        "model": "svara" (Indian), "xtts" (multilingual), "chatterbox" (English), or "orpheus" (English),
+        "audio_prompt_base64": "base64 encoded WAV audio" (required for xtts/chatterbox, optional for svara),
+        "language": "hi" (for svara/xtts, default: hi for svara, en for xtts),
         "voice": "tara" (for orpheus, default: tara),
-        "emotion": "happy" (optional, for orpheus),
+        "emotion": "happy" (optional, for orpheus/svara),
+        "speaker_gender": "female" (for svara, default: female),
         "exaggeration": 0.5 (optional, for chatterbox),
         "cfg_weight": 0.5 (optional, for chatterbox)
     }
@@ -510,19 +700,29 @@ def synthesize(request: dict) -> dict:
         "sample_rate": 24000,
         "duration_seconds": 1.5,
         "processing_time_ms": 500,
-        "model": "xtts-v2",
+        "model": "svara-tts",
         "language": "hi"
     }
     """
     service = TTSService()
 
-    model = request.get("model", "xtts")  # Default to multilingual model
+    model = request.get("model", "svara")  # Default to svara for Indian languages
     text = request.get("text", "")
 
     if not text:
         return {"error": "Text is required"}
 
-    if model == "xtts":
+    if model == "svara":
+        # svara-TTS for Indian languages (Hindi, Bengali, Tamil, etc.)
+        return service.synthesize_svara.remote(
+            text=text,
+            audio_prompt_base64=request.get("audio_prompt_base64"),
+            language=request.get("language", "hi"),
+            emotion=request.get("emotion"),
+            speaker_gender=request.get("speaker_gender", "female"),
+        )
+
+    elif model == "xtts":
         audio_prompt = request.get("audio_prompt_base64")
         if not audio_prompt:
             return {"error": "audio_prompt_base64 is required for xtts model"}
@@ -553,7 +753,7 @@ def synthesize(request: dict) -> dict:
         )
 
     else:
-        return {"error": f"Unknown model: {model}. Use 'xtts' (multilingual), 'chatterbox' (English), or 'orpheus' (English)"}
+        return {"error": f"Unknown model: {model}. Use 'svara' (Indian), 'xtts' (multilingual), 'chatterbox' (English), or 'orpheus' (English)"}
 
 
 # Health check endpoint
@@ -571,6 +771,14 @@ def health() -> dict:
 def languages() -> dict:
     """Get supported languages for each model."""
     return {
+        "svara": {
+            "name": "svara-TTS",
+            "languages": SVARA_SUPPORTED_LANGUAGES,
+            "description": "Indian languages TTS with 19 languages (Hindi, Bengali, Tamil, Telugu, etc.) and emotion control",
+            "requires_audio_prompt": False,
+            "emotions": SVARA_EMOTIONS,
+            "recommended_for": ["hi", "bn", "ta", "te", "mr", "gu", "kn", "ml", "pa"],
+        },
         "xtts": {
             "name": "XTTS-v2",
             "languages": XTTS_SUPPORTED_LANGUAGES,

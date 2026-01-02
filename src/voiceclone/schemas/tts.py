@@ -18,13 +18,21 @@ class TTSRequest(BaseModel):
         description="Text to convert to speech",
     )
     voice_id: uuid.UUID = Field(..., description="ID of the cloned voice to use")
-    model: Literal["chatterbox", "orpheus"] = Field(
-        default="chatterbox",
-        description="TTS model to use. 'chatterbox' for high quality, 'orpheus' for emotional speech",
+    model: Literal["svara", "xtts", "chatterbox", "orpheus"] = Field(
+        default="svara",
+        description="TTS model to use. 'svara' for Hindi/Indian languages, 'xtts' for multilingual, 'chatterbox' for English, 'orpheus' for emotional speech",
+    )
+    language: str = Field(
+        default="hi",
+        description="Language code (hi, bn, ta, te, mr, gu, etc. for svara; en, es, fr, etc. for xtts)",
     )
     emotion: Optional[str] = Field(
         None,
-        description="Emotion tag for Orpheus model (e.g., 'happy', 'sad', 'angry'). Ignored for Chatterbox.",
+        description="Emotion tag (happy, sad, anger, fear, neutral for svara; happy, sad, angry for orpheus)",
+    )
+    speaker_gender: Literal["male", "female"] = Field(
+        default="female",
+        description="Speaker gender for svara model",
     )
     speed: float = Field(
         default=1.0,
@@ -52,8 +60,10 @@ class TTSStreamRequest(BaseModel):
 
     text: str = Field(..., min_length=1, max_length=5000)
     voice_id: uuid.UUID
-    model: Literal["chatterbox", "orpheus"] = "chatterbox"
+    model: Literal["svara", "xtts", "chatterbox", "orpheus"] = "svara"
+    language: str = "hi"
     emotion: Optional[str] = None
+    speaker_gender: Literal["male", "female"] = "female"
 
 
 class TTSStreamChunk(BaseModel):

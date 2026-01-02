@@ -3,6 +3,7 @@ from __future__ import annotations
 """TTS Client service for communicating with Modal.com inference server.
 
 Supports:
+- svara-TTS: Indian languages (19 languages including Hindi, Bengali, Tamil, Telugu, etc.)
 - XTTS-v2: Multilingual voice cloning (17 languages including Hindi, English)
 - Chatterbox: English voice cloning with emotion control
 - Orpheus: English emotional TTS with preset voices
@@ -21,7 +22,7 @@ logger = get_logger(__name__)
 settings = get_settings()
 
 # Supported languages for XTTS-v2
-SUPPORTED_LANGUAGES = [
+XTTS_SUPPORTED_LANGUAGES = [
     "en",  # English
     "es",  # Spanish
     "fr",  # French
@@ -40,6 +41,36 @@ SUPPORTED_LANGUAGES = [
     "ko",  # Korean
     "hi",  # Hindi
 ]
+
+# Supported languages for svara-TTS (Indian languages)
+SVARA_SUPPORTED_LANGUAGES = [
+    "hi",  # Hindi
+    "bn",  # Bengali
+    "mr",  # Marathi
+    "te",  # Telugu
+    "kn",  # Kannada
+    "ta",  # Tamil
+    "gu",  # Gujarati
+    "ml",  # Malayalam
+    "pa",  # Punjabi
+    "as",  # Assamese
+    "or",  # Odia
+    "bo",  # Bodo
+    "doi",  # Dogri
+    "bho",  # Bhojpuri
+    "mai",  # Maithili
+    "mag",  # Magahi
+    "cg",  # Chhattisgarhi
+    "ne",  # Nepali
+    "sa",  # Sanskrit
+    "en-in",  # Indian English
+]
+
+# Svara emotion tags
+SVARA_EMOTIONS = ["happy", "sad", "anger", "fear", "neutral"]
+
+# Combined supported languages
+SUPPORTED_LANGUAGES = list(set(XTTS_SUPPORTED_LANGUAGES + SVARA_SUPPORTED_LANGUAGES))
 
 
 class TTSClientError(Exception):
@@ -215,31 +246,110 @@ class TTSClient:
             logger.error("HTTP error during TTS request", error=str(e))
             raise TTSClientError(f"Failed to connect to TTS service: {e}") from e
 
+    async def synthesize_svara(
+        self,
+        text: str,
+        language: str = "hi",
+        emotion: Optional[str] = None,
+        speaker_gender: str = "female",
+        audio_path: Optional[Union[str, Path]] = None,
+    ) -> dict:
+        """Synthesize speech using svara-TTS model on Modal (Indian languages).
+
+        Args:
+            text: Text to synthesize
+            language: Language code (hi, bn, ta, te, mr, gu, kn, ml, pa, etc.)
+            emotion: Optional emotion tag (happy, sad, anger, fear, neutral)
+            speaker_gender: Speaker gender (male/female)
+            audio_path: Optional reference audio for voice cloning
+
+        Returns:
+            Dictionary with audio data and metadata
+        """
+        # Validate language
+        if language not in SVARA_SUPPORTED_LANGUAGES:
+            raise TTSClientError(
+                f"Unsupported language for svara: {language}. Supported: {SVARA_SUPPORTED_LANGUAGES}"
+            )
+
+        # Validate emotion
+        if emotion and emotion not in SVARA_EMOTIONS:
+            raise TTSClientError(
+                f"Unsupported emotion for svara: {emotion}. Supported: {SVARA_EMOTIONS}"
+            )
+
+        payload = {
+            "model": "svara",
+            "text": text,
+            "language": language,
+            "speaker_gender": speaker_gender,
+        }
+
+        if emotion:
+            payload["emotion"] = emotion
+
+        # Add reference audio for voice cloning if provided
+        if audio_path:
+            audio_path = Path(audio_path)
+            if audio_path.exists():
+                audio_base64 = base64.b64encode(audio_path.read_bytes()).decode("utf-8")
+                payload["audio_prompt_base64"] = audio_base64
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    self.endpoint,
+                    json=payload,
+                    headers=self._get_headers(),
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if "error" in result:
+                    raise TTSClientError(f"TTS error: {result['error']}")
+
+                return result
+
+        except httpx.HTTPError as e:
+            logger.error("HTTP error during TTS request", error=str(e))
+            raise TTSClientError(f"Failed to connect to TTS service: {e}") from e
+
     async def synthesize(
         self,
         text: str,
-        model: str = "xtts",
+        model: str = "svara",
         audio_path: Optional[Union[str, Path]] = None,
-        language: str = "en",
+        language: str = "hi",
         voice: str = "tara",
         emotion: Optional[str] = None,
+        speaker_gender: str = "female",
         **kwargs,
     ) -> dict:
         """Unified synthesis method with multilingual support.
 
         Args:
             text: Text to synthesize
-            model: Model to use ("xtts" for multilingual, "chatterbox" for English, "orpheus" for preset voices)
-            audio_path: Reference audio path (required for xtts/chatterbox)
-            language: Language code for xtts (en, hi, es, fr, etc.)
+            model: Model to use ("svara" for Indian languages, "xtts" for multilingual, "chatterbox" for English, "orpheus" for preset voices)
+            audio_path: Reference audio path (required for xtts/chatterbox, optional for svara)
+            language: Language code (hi for svara, en for xtts, etc.)
             voice: Voice ID for orpheus
-            emotion: Emotion tag for orpheus
+            emotion: Emotion tag for orpheus/svara
+            speaker_gender: Speaker gender for svara (male/female)
             **kwargs: Additional model-specific parameters
 
         Returns:
             Dictionary with audio data and metadata
         """
-        if model == "xtts":
+        if model == "svara":
+            # svara-TTS for Indian languages (Hindi, Bengali, Tamil, etc.)
+            return await self.synthesize_svara(
+                text=text,
+                language=language,
+                emotion=emotion,
+                speaker_gender=speaker_gender,
+                audio_path=audio_path,
+            )
+        elif model == "xtts":
             if not audio_path:
                 raise TTSClientError("audio_path is required for xtts model")
             return await self.synthesize_xtts(
@@ -263,7 +373,7 @@ class TTSClient:
             )
         else:
             raise TTSClientError(
-                f"Unknown model: {model}. Use 'xtts' (multilingual), 'chatterbox' (English), or 'orpheus' (English)"
+                f"Unknown model: {model}. Use 'svara' (Indian), 'xtts' (multilingual), 'chatterbox' (English), or 'orpheus' (English)"
             )
 
     async def stream_synthesis(

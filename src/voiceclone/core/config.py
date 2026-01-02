@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     )
 
     # TTS Settings
-    default_tts_model: Literal["chatterbox", "orpheus", "xtts"] = "xtts"
+    default_tts_model: Literal["svara", "chatterbox", "orpheus", "xtts"] = "svara"
     tts_sample_rate: int = 24000
     tts_chunk_size: int = 4096
     max_text_length: int = 5000
