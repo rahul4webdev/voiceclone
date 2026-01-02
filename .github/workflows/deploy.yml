@@ -39,6 +39,9 @@ jobs:
             mkdir -p $PROJECT_PATH
             cd $PROJECT_PATH
 
+            # Add safe directory to git config (fixes ownership issues)
+            git config --global --add safe.directory $PROJECT_PATH
+
             # Initialize git repo if not exists, or pull latest
             if [ ! -d ".git" ]; then
               echo "Initializing git repository..."
