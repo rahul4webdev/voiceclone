@@ -1,0 +1,15 @@
+# Modal inference dependencies
+# These are installed in the Modal container image
+# This file is for reference only
+
+modal>=0.56.0
+torch>=2.1.0
+torchaudio>=2.1.0
+numpy>=1.26.0
+scipy>=1.12.0
+soundfile>=0.12.0
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+chatterbox-tts>=0.1.0
+orpheus-speech>=0.1.0

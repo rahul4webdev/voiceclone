@@ -1,0 +1,103 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_PATH: /home/voiceclone.gahfaudio.in/public_html
+  DOMAIN: voiceclone.gahfaudio.in
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            echo "=== Starting deployment to ${{ env.PROJECT_PATH }} ==="
+
+            # Navigate to project directory
+            cd ${{ env.PROJECT_PATH }}
+
+            # Pull latest changes
+            echo "Pulling latest changes from GitHub..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Check if virtual environment exists, create if not
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3.11 -m venv venv || python3.9 -m venv venv || python3 -m venv venv
+            fi
+
+            # Activate virtual environment and install dependencies
+            echo "Installing dependencies..."
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -e ".[dev]"
+
+            # Create required directories
+            mkdir -p data/voices
+            mkdir -p logs
+
+            # Check if .env exists, warn if not
+            if [ ! -f ".env" ]; then
+              echo "WARNING: .env file not found! Please create it with production values."
+              echo "You can copy from .env.example and update the values."
+            fi
+
+            # Restart the application using systemd
+            echo "Restarting application..."
+            sudo systemctl restart voiceclone || {
+              echo "systemctl failed, trying alternative restart..."
+              # Kill existing process
+              pkill -f "uvicorn voiceclone" 2>/dev/null || true
+              sleep 2
+
+              # Start in background with nohup
+              nohup venv/bin/uvicorn voiceclone.main:app \
+                --host 127.0.0.1 \
+                --port 8000 \
+                --workers 2 \
+                > logs/uvicorn.log 2>&1 &
+
+              echo "Started uvicorn in background"
+            }
+
+            echo "=== Deployment completed successfully! ==="
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            sleep 10
+            cd ${{ env.PROJECT_PATH }}
+            source venv/bin/activate
+
+            # Check if the app is running
+            if curl -s --max-time 10 http://127.0.0.1:8000/health > /dev/null 2>&1; then
+              echo "Application is running and healthy!"
+            else
+              echo "Warning: Health check failed. Application may still be starting..."
+              # Show recent logs for debugging
+              tail -20 logs/uvicorn.log 2>/dev/null || true
+            fi
