@@ -1,11 +1,13 @@
 """Main FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from voiceclone.api.v1.router import router as api_v1_router
 from voiceclone.api.v1.websocket import router as ws_router
@@ -59,6 +61,23 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(api_v1_router)
     app.include_router(ws_router)
+
+    # Mount static files for documentation
+    static_path = Path(__file__).parent / "static"
+    if static_path.exists():
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+    # API Documentation page (user-friendly)
+    @app.get("/api-docs", include_in_schema=False)
+    async def api_documentation():
+        """Serve the user-friendly API documentation page."""
+        docs_path = static_path / "docs.html"
+        if docs_path.exists():
+            return FileResponse(docs_path)
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Documentation not found"}
+        )
 
     # Health check endpoint
     @app.get("/health", tags=["health"])

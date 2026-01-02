@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceClone API Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-code: #0d1117;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            margin-top: 64px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            height: calc(100vh - 64px);
+            position: fixed;
+            left: 0;
+            top: 64px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+        }
+
+        .method-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .method-post { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .method-get { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .method-delete { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .method-ws { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem 3rem;
+            max-width: calc(100% - 280px);
+        }
+
+        .section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .endpoint-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            background: var(--bg-code);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        /* Code Blocks */
+        .code-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: -1px;
+        }
+
+        .code-tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .code-tab.active {
+            background: var(--bg-code);
+            color: var(--primary);
+            border-color: var(--border);
+        }
+
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 0 8px 8px 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-lang {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #c678dd; }
+        .string { color: #98c379; }
+        .number { color: #d19a66; }
+        .comment { color: #5c6370; font-style: italic; }
+        .function { color: #61afef; }
+        .property { color: #e06c75; }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-code);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        td code {
+            background: var(--bg-code);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--primary);
+        }
+
+        /* Model Cards */
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .model-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .model-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .model-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .model-card .badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-recommended {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--secondary);
+        }
+
+        .model-card p {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .model-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .feature-tag {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border-radius: 4px;
+        }
+
+        /* Language Grid */
+        .lang-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .lang-item {
+            background: var(--bg-code);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lang-code {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Try It Section */
+        .try-it {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .try-it h4 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .response-area {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow: auto;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            margin-left: 280px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+                max-width: 100%;
+            }
+            footer {
+                margin-left: 0;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            VoiceClone API
+        </div>
+        <div class="nav-links">
+            <a href="#overview">Overview</a>
+            <a href="#models">Models</a>
+            <a href="#endpoints">Endpoints</a>
+            <a href="#websocket">WebSocket</a>
+            <a href="/docs" target="_blank">Swagger UI</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Getting Started</div>
+                <a href="#overview" class="sidebar-link">Overview</a>
+                <a href="#authentication" class="sidebar-link">Authentication</a>
+                <a href="#models" class="sidebar-link">TTS Models</a>
+                <a href="#languages" class="sidebar-link">Languages</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">REST API</div>
+                <a href="#synthesize" class="sidebar-link">
+                    <span class="method-badge method-post">POST</span>
+                    /tts/synthesize
+                </a>
+                <a href="#synthesize-audio" class="sidebar-link">
+                    <span class="method-badge method-post">POST</span>
+                    /tts/synthesize/audio
+                </a>
+                <a href="#list-models" class="sidebar-link">
+                    <span class="method-badge method-get">GET</span>
+                    /tts/models
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Voice Management</div>
+                <a href="#create-voice" class="sidebar-link">
+                    <span class="method-badge method-post">POST</span>
+                    /voices
+                </a>
+                <a href="#list-voices" class="sidebar-link">
+                    <span class="method-badge method-get">GET</span>
+                    /voices
+                </a>
+                <a href="#get-voice" class="sidebar-link">
+                    <span class="method-badge method-get">GET</span>
+                    /voices/{id}
+                </a>
+                <a href="#delete-voice" class="sidebar-link">
+                    <span class="method-badge method-delete">DELETE</span>
+                    /voices/{id}
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">WebSocket</div>
+                <a href="#websocket" class="sidebar-link">
+                    <span class="method-badge method-ws">WS</span>
+                    /ws/tts
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Integration</div>
+                <a href="#ai-agent" class="sidebar-link">AI Sales Agent</a>
+                <a href="#errors" class="sidebar-link">Error Handling</a>
+                <a href="#rate-limits" class="sidebar-link">Rate Limits</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <!-- Hero Section -->
+            <section class="hero section" id="overview">
+                <h1>VoiceClone API</h1>
+                <p>Enterprise-grade Text-to-Speech platform with voice cloning support for 19+ Indian languages and 17+ international languages.</p>
+                <div class="hero-buttons">
+                    <a href="#synthesize" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Quick Start
+                    </a>
+                    <a href="/docs" class="btn btn-secondary" target="_blank">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Swagger UI
+                    </a>
+                </div>
+            </section>
+
+            <!-- Base URL -->
+            <section class="section" id="authentication">
+                <h2>Base URL & Authentication</h2>
+                <div class="card">
+                    <h3>Base URL</h3>
+                    <div class="code-block">
+                        <pre>https://voiceclone.gahfaudio.in/api/v1</pre>
+                    </div>
+                    <p style="margin-top: 1rem;">All API endpoints are relative to this base URL.</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <div>
+                        <strong>Note:</strong> Authentication is not required for basic API access. For production usage with higher rate limits, contact us for API keys.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Models Section -->
+            <section class="section" id="models">
+                <h2>TTS Models</h2>
+                <p>Choose the right model for your use case. Each model has different strengths and language support.</p>
+
+                <div class="model-grid">
+                    <div class="model-card">
+                        <h4>
+                            svara-TTS
+                            <span class="badge badge-recommended">Recommended for Hindi</span>
+                        </h4>
+                        <p>Best quality for Hindi and Indian languages with emotion control.</p>
+                        <div class="model-features">
+                            <span class="feature-tag">19 Indian Languages</span>
+                            <span class="feature-tag">Emotion Control</span>
+                            <span class="feature-tag">Voice Cloning</span>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <h4>XTTS-v2</h4>
+                        <p>Multilingual voice cloning with excellent quality across 17 languages.</p>
+                        <div class="model-features">
+                            <span class="feature-tag">17 Languages</span>
+                            <span class="feature-tag">Voice Cloning</span>
+                            <span class="feature-tag">Requires Reference Audio</span>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <h4>Chatterbox</h4>
+                        <p>High-quality English voice cloning with emotion exaggeration control.</p>
+                        <div class="model-features">
+                            <span class="feature-tag">English Only</span>
+                            <span class="feature-tag">Voice Cloning</span>
+                            <span class="feature-tag">Emotion Control</span>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <h4>Orpheus</h4>
+                        <p>Emotional speech synthesis with 8 preset voices. No reference audio needed.</p>
+                        <div class="model-features">
+                            <span class="feature-tag">English Only</span>
+                            <span class="feature-tag">8 Preset Voices</span>
+                            <span class="feature-tag">5 Emotions</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Languages Section -->
+            <section class="section" id="languages">
+                <h2>Supported Languages</h2>
+
+                <h3>svara-TTS (Indian Languages)</h3>
+                <div class="lang-grid">
+                    <div class="lang-item"><span class="lang-code">hi</span> Hindi</div>
+                    <div class="lang-item"><span class="lang-code">bn</span> Bengali</div>
+                    <div class="lang-item"><span class="lang-code">ta</span> Tamil</div>
+                    <div class="lang-item"><span class="lang-code">te</span> Telugu</div>
+                    <div class="lang-item"><span class="lang-code">mr</span> Marathi</div>
+                    <div class="lang-item"><span class="lang-code">gu</span> Gujarati</div>
+                    <div class="lang-item"><span class="lang-code">kn</span> Kannada</div>
+                    <div class="lang-item"><span class="lang-code">ml</span> Malayalam</div>
+                    <div class="lang-item"><span class="lang-code">pa</span> Punjabi</div>
+                    <div class="lang-item"><span class="lang-code">as</span> Assamese</div>
+                    <div class="lang-item"><span class="lang-code">or</span> Odia</div>
+                    <div class="lang-item"><span class="lang-code">bho</span> Bhojpuri</div>
+                    <div class="lang-item"><span class="lang-code">mai</span> Maithili</div>
+                    <div class="lang-item"><span class="lang-code">ne</span> Nepali</div>
+                    <div class="lang-item"><span class="lang-code">sa</span> Sanskrit</div>
+                    <div class="lang-item"><span class="lang-code">en-in</span> Indian English</div>
+                </div>
+
+                <h3>XTTS-v2 (Multilingual)</h3>
+                <div class="lang-grid">
+                    <div class="lang-item"><span class="lang-code">en</span> English</div>
+                    <div class="lang-item"><span class="lang-code">es</span> Spanish</div>
+                    <div class="lang-item"><span class="lang-code">fr</span> French</div>
+                    <div class="lang-item"><span class="lang-code">de</span> German</div>
+                    <div class="lang-item"><span class="lang-code">it</span> Italian</div>
+                    <div class="lang-item"><span class="lang-code">pt</span> Portuguese</div>
+                    <div class="lang-item"><span class="lang-code">ru</span> Russian</div>
+                    <div class="lang-item"><span class="lang-code">ja</span> Japanese</div>
+                    <div class="lang-item"><span class="lang-code">zh-cn</span> Chinese</div>
+                    <div class="lang-item"><span class="lang-code">ko</span> Korean</div>
+                    <div class="lang-item"><span class="lang-code">ar</span> Arabic</div>
+                    <div class="lang-item"><span class="lang-code">hi</span> Hindi</div>
+                </div>
+            </section>
+
+            <!-- Synthesize Endpoint -->
+            <section class="section" id="synthesize">
+                <h2>Synthesize Speech</h2>
+                <div class="card">
+                    <div class="card-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code class="endpoint-path">/api/v1/tts/synthesize</code>
+                    </div>
+                    <p>Convert text to speech using a cloned voice. Returns a base64 encoded audio URL.</p>
+
+                    <h3>Request Body</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Type</th>
+                                    <th>Required</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>text</code></td>
+                                    <td>string</td>
+                                    <td>Yes</td>
+                                    <td>Text to convert to speech (1-5000 characters)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>voice_id</code></td>
+                                    <td>UUID</td>
+                                    <td>Yes</td>
+                                    <td>ID of the cloned voice to use</td>
+                                </tr>
+                                <tr>
+                                    <td><code>model</code></td>
+                                    <td>string</td>
+                                    <td>No</td>
+                                    <td>TTS model: <code>svara</code>, <code>xtts</code>, <code>chatterbox</code>, <code>orpheus</code>. Default: <code>svara</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>language</code></td>
+                                    <td>string</td>
+                                    <td>No</td>
+                                    <td>Language code. Default: <code>hi</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>emotion</code></td>
+                                    <td>string</td>
+                                    <td>No</td>
+                                    <td>Emotion: <code>happy</code>, <code>sad</code>, <code>anger</code>, <code>fear</code>, <code>neutral</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>speaker_gender</code></td>
+                                    <td>string</td>
+                                    <td>No</td>
+                                    <td><code>male</code> or <code>female</code>. Default: <code>female</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>output_format</code></td>
+                                    <td>string</td>
+                                    <td>No</td>
+                                    <td><code>wav</code> or <code>mp3</code>. Default: <code>wav</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Example Request</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" onclick="showTab(this, 'python-synth')">Python</button>
+                        <button class="code-tab" onclick="showTab(this, 'curl-synth')">cURL</button>
+                        <button class="code-tab" onclick="showTab(this, 'js-synth')">JavaScript</button>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">Python</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre id="python-synth"><span class="keyword">import</span> requests
+
+response = requests.post(
+    <span class="string">"https://voiceclone.gahfaudio.in/api/v1/tts/synthesize"</span>,
+    json={
+        <span class="string">"text"</span>: <span class="string">"नमस्ते, मैं आपकी कैसे मदद कर सकता हूं?"</span>,
+        <span class="string">"voice_id"</span>: <span class="string">"your-voice-uuid"</span>,
+        <span class="string">"model"</span>: <span class="string">"svara"</span>,
+        <span class="string">"language"</span>: <span class="string">"hi"</span>,
+        <span class="string">"emotion"</span>: <span class="string">"happy"</span>,
+        <span class="string">"speaker_gender"</span>: <span class="string">"female"</span>
+    }
+)
+
+result = response.json()
+<span class="function">print</span>(result[<span class="string">"audio_url"</span>])  <span class="comment"># data:audio/wav;base64,...</span></pre>
+                        <pre id="curl-synth" style="display:none;">curl -X POST <span class="string">"https://voiceclone.gahfaudio.in/api/v1/tts/synthesize"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d '{
+    "text": "नमस्ते, मैं आपकी कैसे मदद कर सकता हूं?",
+    "voice_id": "your-voice-uuid",
+    "model": "svara",
+    "language": "hi",
+    "emotion": "happy"
+  }'</pre>
+                        <pre id="js-synth" style="display:none;"><span class="keyword">const</span> response = <span class="keyword">await</span> <span class="function">fetch</span>(
+  <span class="string">"https://voiceclone.gahfaudio.in/api/v1/tts/synthesize"</span>,
+  {
+    method: <span class="string">"POST"</span>,
+    headers: { <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span> },
+    body: JSON.<span class="function">stringify</span>({
+      text: <span class="string">"नमस्ते, मैं आपकी कैसे मदद कर सकता हूं?"</span>,
+      voice_id: <span class="string">"your-voice-uuid"</span>,
+      model: <span class="string">"svara"</span>,
+      language: <span class="string">"hi"</span>,
+      emotion: <span class="string">"happy"</span>
+    })
+  }
+);
+
+<span class="keyword">const</span> result = <span class="keyword">await</span> response.<span class="function">json</span>();
+console.<span class="function">log</span>(result.audio_url);</pre>
+                    </div>
+
+                    <h3>Response</h3>
+                    <div class="code-block">
+                        <pre>{
+  <span class="property">"audio_url"</span>: <span class="string">"data:audio/wav;base64,UklGRi..."</span>,
+  <span class="property">"duration_seconds"</span>: <span class="number">2.5</span>,
+  <span class="property">"model_used"</span>: <span class="string">"svara-tts"</span>,
+  <span class="property">"processing_time_ms"</span>: <span class="number">850</span>
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Synthesize Audio Endpoint -->
+            <section class="section" id="synthesize-audio">
+                <h2>Synthesize Audio (Direct Download)</h2>
+                <div class="card">
+                    <div class="card-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code class="endpoint-path">/api/v1/tts/synthesize/audio</code>
+                    </div>
+                    <p>Same as synthesize, but returns the audio file directly as a streaming response. Ideal for direct playback or saving to file.</p>
+
+                    <h3>Example Request</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">Python</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><span class="keyword">import</span> requests
+
+response = requests.post(
+    <span class="string">"https://voiceclone.gahfaudio.in/api/v1/tts/synthesize/audio"</span>,
+    json={
+        <span class="string">"text"</span>: <span class="string">"Hello, how can I help you today?"</span>,
+        <span class="string">"voice_id"</span>: <span class="string">"your-voice-uuid"</span>,
+        <span class="string">"model"</span>: <span class="string">"svara"</span>,
+        <span class="string">"language"</span>: <span class="string">"en-in"</span>
+    }
+)
+
+<span class="comment"># Save audio file directly</span>
+<span class="keyword">with</span> <span class="function">open</span>(<span class="string">"output.wav"</span>, <span class="string">"wb"</span>) <span class="keyword">as</span> f:
+    f.write(response.content)
+
+<span class="comment"># Get metadata from headers</span>
+duration = response.headers.get(<span class="string">"X-Duration-Seconds"</span>)
+<span class="function">print</span>(<span class="string">f"Duration: </span>{duration}<span class="string">s"</span>)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- List Models Endpoint -->
+            <section class="section" id="list-models">
+                <h2>List Available Models</h2>
+                <div class="card">
+                    <div class="card-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code class="endpoint-path">/api/v1/tts/models</code>
+                    </div>
+                    <p>Get information about all available TTS models and their capabilities.</p>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">cURL</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre>curl <span class="string">"https://voiceclone.gahfaudio.in/api/v1/tts/models"</span></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Voice Management -->
+            <section class="section" id="create-voice">
+                <h2>Voice Management</h2>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code class="endpoint-path">/api/v1/voices</code>
+                    </div>
+                    <p>Create a new voice profile by uploading a reference audio sample.</p>
+
+                    <h3>Request (multipart/form-data)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>name</code></td>
+                                    <td>string</td>
+                                    <td>Name for the voice profile</td>
+                                </tr>
+                                <tr>
+                                    <td><code>audio_file</code></td>
+                                    <td>file</td>
+                                    <td>Reference audio (WAV, MP3, FLAC, OGG, M4A). 10-30 seconds recommended.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>description</code></td>
+                                    <td>string</td>
+                                    <td>Optional description</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">Python</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><span class="keyword">import</span> requests
+
+<span class="keyword">with</span> <span class="function">open</span>(<span class="string">"voice_sample.wav"</span>, <span class="string">"rb"</span>) <span class="keyword">as</span> f:
+    response = requests.post(
+        <span class="string">"https://voiceclone.gahfaudio.in/api/v1/voices"</span>,
+        files={<span class="string">"audio_file"</span>: f},
+        data={
+            <span class="string">"name"</span>: <span class="string">"My Sales Agent Voice"</span>,
+            <span class="string">"description"</span>: <span class="string">"Professional Hindi voice"</span>
+        }
+    )
+
+voice = response.json()
+<span class="function">print</span>(<span class="string">f"Voice ID: </span>{voice[<span class="string">'id'</span>]}<span class="string">"</span>)</pre>
+                    </div>
+                </div>
+
+                <div class="card" id="list-voices">
+                    <div class="card-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code class="endpoint-path">/api/v1/voices</code>
+                    </div>
+                    <p>List all voice profiles.</p>
+                </div>
+
+                <div class="card" id="get-voice">
+                    <div class="card-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code class="endpoint-path">/api/v1/voices/{voice_id}</code>
+                    </div>
+                    <p>Get details of a specific voice profile.</p>
+                </div>
+
+                <div class="card" id="delete-voice">
+                    <div class="card-header">
+                        <span class="method-badge method-delete">DELETE</span>
+                        <code class="endpoint-path">/api/v1/voices/{voice_id}</code>
+                    </div>
+                    <p>Delete a voice profile.</p>
+                </div>
+            </section>
+
+            <!-- WebSocket Section -->
+            <section class="section" id="websocket">
+                <h2>WebSocket Streaming API</h2>
+                <div class="card">
+                    <div class="card-header">
+                        <span class="method-badge method-ws">WebSocket</span>
+                        <code class="endpoint-path">wss://voiceclone.gahfaudio.in/ws/tts</code>
+                    </div>
+                    <p>Real-time streaming TTS for low-latency applications like live conversations and AI agents.</p>
+
+                    <h3>Connection Flow</h3>
+                    <div class="alert alert-info">
+                        <div>
+                            1. Connect to WebSocket endpoint<br>
+                            2. Send JSON request with text and voice settings<br>
+                            3. Receive audio chunks in real-time<br>
+                            4. Receive final message with total duration
+                        </div>
+                    </div>
+
+                    <h3>Python Example</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">Python</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><span class="keyword">import</span> asyncio
+<span class="keyword">import</span> websockets
+<span class="keyword">import</span> json
+<span class="keyword">import</span> base64
+
+<span class="keyword">async def</span> <span class="function">stream_tts</span>():
+    uri = <span class="string">"wss://voiceclone.gahfaudio.in/ws/tts"</span>
+
+    <span class="keyword">async with</span> websockets.<span class="function">connect</span>(uri) <span class="keyword">as</span> ws:
+        <span class="comment"># Send synthesis request</span>
+        request = {
+            <span class="string">"text"</span>: <span class="string">"नमस्ते, यह एक टेस्ट मैसेज है।"</span>,
+            <span class="string">"voice_id"</span>: <span class="string">"your-voice-uuid"</span>,
+            <span class="string">"model"</span>: <span class="string">"svara"</span>,
+            <span class="string">"language"</span>: <span class="string">"hi"</span>
+        }
+        <span class="keyword">await</span> ws.<span class="function">send</span>(json.<span class="function">dumps</span>(request))
+
+        audio_chunks = []
+
+        <span class="keyword">while</span> <span class="keyword">True</span>:
+            message = json.<span class="function">loads</span>(<span class="keyword">await</span> ws.<span class="function">recv</span>())
+
+            <span class="keyword">if</span> message.get(<span class="string">"type"</span>) == <span class="string">"chunk"</span>:
+                <span class="comment"># Decode and store audio chunk</span>
+                chunk = base64.<span class="function">b64decode</span>(message[<span class="string">"audio_base64"</span>])
+                audio_chunks.<span class="function">append</span>(chunk)
+                <span class="function">print</span>(<span class="string">f"Received chunk </span>{message[<span class="string">'chunk_index'</span>]}<span class="string">"</span>)
+
+            <span class="keyword">elif</span> message.get(<span class="string">"type"</span>) == <span class="string">"end"</span>:
+                <span class="function">print</span>(<span class="string">f"Complete! Duration: </span>{message[<span class="string">'total_duration_seconds'</span>]}<span class="string">s"</span>)
+                <span class="keyword">break</span>
+
+            <span class="keyword">elif</span> message.get(<span class="string">"type"</span>) == <span class="string">"error"</span>:
+                <span class="function">print</span>(<span class="string">f"Error: </span>{message[<span class="string">'error'</span>]}<span class="string">"</span>)
+                <span class="keyword">break</span>
+
+        <span class="comment"># Combine and save audio</span>
+        full_audio = <span class="string">b""</span>.<span class="function">join</span>(audio_chunks)
+        <span class="keyword">with</span> <span class="function">open</span>(<span class="string">"stream_output.wav"</span>, <span class="string">"wb"</span>) <span class="keyword">as</span> f:
+            f.<span class="function">write</span>(full_audio)
+
+asyncio.<span class="function">run</span>(<span class="function">stream_tts</span>())</pre>
+                    </div>
+
+                    <h3>JavaScript Example</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">JavaScript</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><span class="keyword">const</span> ws = <span class="keyword">new</span> <span class="function">WebSocket</span>(<span class="string">"wss://voiceclone.gahfaudio.in/ws/tts"</span>);
+
+<span class="keyword">const</span> audioChunks = [];
+<span class="keyword">const</span> audioContext = <span class="keyword">new</span> (<span class="property">window</span>.AudioContext || <span class="property">window</span>.webkitAudioContext)();
+
+ws.<span class="function">onopen</span> = () => {
+  ws.<span class="function">send</span>(JSON.<span class="function">stringify</span>({
+    text: <span class="string">"Hello, this is a streaming test."</span>,
+    voice_id: <span class="string">"your-voice-uuid"</span>,
+    model: <span class="string">"svara"</span>,
+    language: <span class="string">"en-in"</span>
+  }));
+};
+
+ws.<span class="function">onmessage</span> = <span class="keyword">async</span> (event) => {
+  <span class="keyword">const</span> message = JSON.<span class="function">parse</span>(event.data);
+
+  <span class="keyword">if</span> (message.type === <span class="string">"chunk"</span>) {
+    <span class="comment">// Decode base64 audio chunk</span>
+    <span class="keyword">const</span> binaryString = <span class="function">atob</span>(message.audio_base64);
+    <span class="keyword">const</span> bytes = <span class="keyword">new</span> <span class="function">Uint8Array</span>(binaryString.length);
+    <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i < binaryString.length; i++) {
+      bytes[i] = binaryString.<span class="function">charCodeAt</span>(i);
+    }
+    audioChunks.<span class="function">push</span>(bytes);
+
+  } <span class="keyword">else if</span> (message.type === <span class="string">"end"</span>) {
+    console.<span class="function">log</span>(<span class="string">`Complete! Duration: </span>${message.total_duration_seconds}<span class="string">s`</span>);
+    <span class="comment">// Play the audio</span>
+    <span class="function">playAudio</span>(audioChunks);
+  }
+};
+
+<span class="keyword">function</span> <span class="function">playAudio</span>(chunks) {
+  <span class="keyword">const</span> blob = <span class="keyword">new</span> <span class="function">Blob</span>(chunks, { type: <span class="string">"audio/wav"</span> });
+  <span class="keyword">const</span> audio = <span class="keyword">new</span> <span class="function">Audio</span>(URL.<span class="function">createObjectURL</span>(blob));
+  audio.<span class="function">play</span>();
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Agent Integration -->
+            <section class="section" id="ai-agent">
+                <h2>AI Sales Agent Integration</h2>
+                <p>Complete example for integrating VoiceClone TTS with your AI sales agent platform.</p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-lang">Python</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><span class="keyword">import</span> httpx
+<span class="keyword">import</span> base64
+
+<span class="keyword">class</span> <span class="function">VoiceCloneClient</span>:
+    <span class="string">"""VoiceClone TTS client for AI sales agents."""</span>
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, voice_id: str, model: str = <span class="string">"svara"</span>):
+        self.base_url = <span class="string">"https://voiceclone.gahfaudio.in/api/v1"</span>
+        self.voice_id = voice_id
+        self.model = model
+        self.client = httpx.AsyncClient(timeout=<span class="number">60.0</span>)
+
+    <span class="comment"># Map AI sentiment to TTS emotion</span>
+    EMOTION_MAP = {
+        <span class="string">"positive"</span>: <span class="string">"happy"</span>,
+        <span class="string">"negative"</span>: <span class="string">"sad"</span>,
+        <span class="string">"urgent"</span>: <span class="string">"fear"</span>,
+        <span class="string">"frustrated"</span>: <span class="string">"anger"</span>,
+        <span class="string">"default"</span>: <span class="string">"neutral"</span>
+    }
+
+    <span class="keyword">async def</span> <span class="function">speak</span>(
+        self,
+        text: str,
+        language: str = <span class="string">"hi"</span>,
+        sentiment: str = <span class="string">"default"</span>
+    ) -> bytes:
+        <span class="string">"""Convert text to speech with emotion based on sentiment."""</span>
+        emotion = self.EMOTION_MAP.get(sentiment, <span class="string">"neutral"</span>)
+
+        response = <span class="keyword">await</span> self.client.post(
+            <span class="string">f"</span>{self.base_url}<span class="string">/tts/synthesize/audio"</span>,
+            json={
+                <span class="string">"text"</span>: text,
+                <span class="string">"voice_id"</span>: self.voice_id,
+                <span class="string">"model"</span>: self.model,
+                <span class="string">"language"</span>: language,
+                <span class="string">"emotion"</span>: emotion
+            }
+        )
+        response.raise_for_status()
+        <span class="keyword">return</span> response.content
+
+<span class="comment"># Usage in your AI agent</span>
+<span class="keyword">async def</span> <span class="function">handle_customer_query</span>(query: str):
+    <span class="comment"># Your LLM generates response</span>
+    llm_response = <span class="keyword">await</span> <span class="function">generate_response</span>(query)
+
+    <span class="comment"># Analyze sentiment</span>
+    sentiment = <span class="function">analyze_sentiment</span>(llm_response)
+
+    <span class="comment"># Convert to speech with appropriate emotion</span>
+    tts = VoiceCloneClient(voice_id=<span class="string">"your-voice-uuid"</span>)
+    audio = <span class="keyword">await</span> tts.<span class="function">speak</span>(
+        text=llm_response,
+        language=<span class="string">"hi"</span>,
+        sentiment=sentiment
+    )
+
+    <span class="comment"># Play or stream audio to customer</span>
+    <span class="keyword">return</span> audio</pre>
+                </div>
+            </section>
+
+            <!-- Error Handling -->
+            <section class="section" id="errors">
+                <h2>Error Handling</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status Code</th>
+                                <th>Error</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>400</code></td>
+                                <td>Bad Request</td>
+                                <td>Invalid parameters or voice not ready</td>
+                            </tr>
+                            <tr>
+                                <td><code>404</code></td>
+                                <td>Not Found</td>
+                                <td>Voice ID not found</td>
+                            </tr>
+                            <tr>
+                                <td><code>413</code></td>
+                                <td>Payload Too Large</td>
+                                <td>Text exceeds 5000 characters or audio file too large</td>
+                            </tr>
+                            <tr>
+                                <td><code>429</code></td>
+                                <td>Too Many Requests</td>
+                                <td>Rate limit exceeded (100 requests/minute)</td>
+                            </tr>
+                            <tr>
+                                <td><code>502</code></td>
+                                <td>Bad Gateway</td>
+                                <td>TTS service error (Modal.com inference)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Error Response Format</h3>
+                <div class="code-block">
+                    <pre>{
+  <span class="property">"detail"</span>: <span class="string">"Voice not found: 123e4567-e89b-12d3-a456-426614174000"</span>
+}</pre>
+                </div>
+            </section>
+
+            <!-- Rate Limits -->
+            <section class="section" id="rate-limits">
+                <h2>Rate Limits</h2>
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Limit Type</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Requests per minute</td>
+                                    <td>100</td>
+                                </tr>
+                                <tr>
+                                    <td>Max text length</td>
+                                    <td>5,000 characters</td>
+                                </tr>
+                                <tr>
+                                    <td>Max audio upload size</td>
+                                    <td>50 MB</td>
+                                </tr>
+                                <tr>
+                                    <td>WebSocket connections</td>
+                                    <td>10 concurrent per IP</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <div>
+                            <strong>Need higher limits?</strong> Contact us for enterprise API keys with increased rate limits and dedicated support.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Try It Section -->
+            <section class="section" id="try-it">
+                <h2>Try It Live</h2>
+                <div class="try-it">
+                    <h4>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Test the API
+                    </h4>
+
+                    <div class="form-group">
+                        <label for="test-text">Text to Synthesize</label>
+                        <textarea id="test-text" placeholder="Enter text in Hindi or English...">नमस्ते, मैं आपकी कैसे मदद कर सकता हूं?</textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="test-model">Model</label>
+                            <select id="test-model">
+                                <option value="svara">svara (Hindi/Indian)</option>
+                                <option value="xtts">xtts (Multilingual)</option>
+                                <option value="orpheus">orpheus (English)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="test-language">Language</label>
+                            <select id="test-language">
+                                <option value="hi">Hindi (hi)</option>
+                                <option value="en-in">Indian English (en-in)</option>
+                                <option value="bn">Bengali (bn)</option>
+                                <option value="ta">Tamil (ta)</option>
+                                <option value="te">Telugu (te)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="test-emotion">Emotion</label>
+                            <select id="test-emotion">
+                                <option value="">None</option>
+                                <option value="happy">Happy</option>
+                                <option value="sad">Sad</option>
+                                <option value="neutral">Neutral</option>
+                                <option value="anger">Anger</option>
+                                <option value="fear">Fear</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="test-gender">Speaker Gender</label>
+                            <select id="test-gender">
+                                <option value="female">Female</option>
+                                <option value="male">Male</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="test-voice-id">Voice ID (UUID)</label>
+                        <input type="text" id="test-voice-id" placeholder="Enter your voice UUID...">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="testApi()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Generate Speech
+                    </button>
+
+                    <div id="response-area" class="response-area" style="display: none;"></div>
+                    <audio id="audio-player" controls style="width: 100%; margin-top: 1rem; display: none;"></audio>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>VoiceClone API Documentation &copy; 2024. Built for AI Sales Agents.</p>
+    </footer>
+
+    <script>
+        // Tab switching
+        function showTab(button, id) {
+            const parent = button.closest('.card') || button.closest('.section');
+            parent.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+            parent.querySelectorAll('pre[id]').forEach(p => p.style.display = 'none');
+            button.classList.add('active');
+            document.getElementById(id).style.display = 'block';
+        }
+
+        // Copy code
+        function copyCode(button) {
+            const pre = button.closest('.code-block').querySelector('pre:not([style*="display: none"])');
+            const text = pre.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Smooth scrolling for sidebar links
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    document.querySelector(href).scrollIntoView({ behavior: 'smooth' });
+
+                    // Update active state
+                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Test API function
+        async function testApi() {
+            const text = document.getElementById('test-text').value;
+            const model = document.getElementById('test-model').value;
+            const language = document.getElementById('test-language').value;
+            const emotion = document.getElementById('test-emotion').value;
+            const gender = document.getElementById('test-gender').value;
+            const voiceId = document.getElementById('test-voice-id').value;
+
+            const responseArea = document.getElementById('response-area');
+            const audioPlayer = document.getElementById('audio-player');
+
+            if (!text) {
+                responseArea.style.display = 'block';
+                responseArea.innerHTML = '<span style="color: #ef4444;">Error: Please enter text to synthesize</span>';
+                return;
+            }
+
+            if (!voiceId) {
+                responseArea.style.display = 'block';
+                responseArea.innerHTML = '<span style="color: #ef4444;">Error: Please enter a voice ID. Create a voice first using POST /api/v1/voices</span>';
+                return;
+            }
+
+            responseArea.style.display = 'block';
+            responseArea.innerHTML = '<span style="color: #60a5fa;">Generating speech...</span>';
+            audioPlayer.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/v1/tts/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_id: voiceId,
+                        model: model,
+                        language: language,
+                        emotion: emotion || undefined,
+                        speaker_gender: gender
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    responseArea.innerHTML = `<span style="color: #22c55e;">Success!</span>
+Duration: ${data.duration_seconds}s
+Model: ${data.model_used}
+Processing time: ${data.processing_time_ms}ms`;
+
+                    // Play audio
+                    audioPlayer.src = data.audio_url;
+                    audioPlayer.style.display = 'block';
+                    audioPlayer.play();
+                } else {
+                    responseArea.innerHTML = `<span style="color: #ef4444;">Error: ${data.detail || JSON.stringify(data)}</span>`;
+                }
+            } catch (error) {
+                responseArea.innerHTML = `<span style="color: #ef4444;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('.section');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
