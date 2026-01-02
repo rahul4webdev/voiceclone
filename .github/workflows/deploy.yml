@@ -9,6 +9,7 @@ on:
 env:
   PROJECT_PATH: /home/voiceclone.gahfaudio.in/public_html
   DOMAIN: voiceclone.gahfaudio.in
+  APP_PORT: 8011
 
 jobs:
   deploy:
@@ -29,15 +30,27 @@ jobs:
           script: |
             set -e
 
-            echo "=== Starting deployment to ${{ env.PROJECT_PATH }} ==="
+            PROJECT_PATH="/home/voiceclone.gahfaudio.in/public_html"
+            APP_PORT="8011"
 
-            # Navigate to project directory
-            cd ${{ env.PROJECT_PATH }}
+            echo "=== Starting deployment to $PROJECT_PATH ==="
 
-            # Pull latest changes
-            echo "Pulling latest changes from GitHub..."
-            git fetch origin main
-            git reset --hard origin/main
+            # Create project directory if it doesn't exist
+            mkdir -p $PROJECT_PATH
+            cd $PROJECT_PATH
+
+            # Initialize git repo if not exists, or pull latest
+            if [ ! -d ".git" ]; then
+              echo "Initializing git repository..."
+              git init
+              git remote add origin https://github.com/rahul4webdev/voiceclone.git
+              git fetch origin main
+              git checkout -b main origin/main
+            else
+              echo "Pulling latest changes from GitHub..."
+              git fetch origin main
+              git reset --hard origin/main
+            fi
 
             # Check if virtual environment exists, create if not
             if [ ! -d "venv" ]; then
@@ -55,15 +68,19 @@ jobs:
             mkdir -p data/voices
             mkdir -p logs
 
-            # Check if .env exists, warn if not
+            # Create .env from example if not exists
             if [ ! -f ".env" ]; then
-              echo "WARNING: .env file not found! Please create it with production values."
-              echo "You can copy from .env.example and update the values."
+              if [ -f ".env.example" ]; then
+                cp .env.example .env
+                # Update port in .env
+                sed -i "s/PORT=8000/PORT=$APP_PORT/" .env
+                echo "Created .env from .env.example - Please update with production values!"
+              fi
             fi
 
             # Restart the application using systemd
             echo "Restarting application..."
-            sudo systemctl restart voiceclone || {
+            sudo systemctl restart voiceclone 2>/dev/null || {
               echo "systemctl failed, trying alternative restart..."
               # Kill existing process
               pkill -f "uvicorn voiceclone" 2>/dev/null || true
@@ -72,11 +89,11 @@ jobs:
               # Start in background with nohup
               nohup venv/bin/uvicorn voiceclone.main:app \
                 --host 127.0.0.1 \
-                --port 8000 \
+                --port $APP_PORT \
                 --workers 2 \
                 > logs/uvicorn.log 2>&1 &
 
-              echo "Started uvicorn in background"
+              echo "Started uvicorn on port $APP_PORT in background"
             }
 
             echo "=== Deployment completed successfully! ==="
@@ -90,12 +107,15 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             sleep 10
-            cd ${{ env.PROJECT_PATH }}
+            PROJECT_PATH="/home/voiceclone.gahfaudio.in/public_html"
+            APP_PORT="8011"
+
+            cd $PROJECT_PATH
             source venv/bin/activate
 
             # Check if the app is running
-            if curl -s --max-time 10 http://127.0.0.1:8000/health > /dev/null 2>&1; then
-              echo "Application is running and healthy!"
+            if curl -s --max-time 10 http://127.0.0.1:$APP_PORT/health > /dev/null 2>&1; then
+              echo "Application is running and healthy on port $APP_PORT!"
             else
               echo "Warning: Health check failed. Application may still be starting..."
               # Show recent logs for debugging
